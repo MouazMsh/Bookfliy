@@ -1,0 +1,15 @@
+html {
+    height: 100%;
+    background-color: black;
+}
+
+body {
+    background-color: black !important;
+}
+
+.font {
+  font-family: "Nunito", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}

@@ -1,0 +1,74 @@
+<%- include('partials/header.ejs') %>
+<% if(locals.user) {%>
+    <!-- Header Section -->
+    <section class="bg-black font ">
+        <div class="container overflow-hidden py-7 position-relative">
+            <div class="row align-items-center justify-content-center my-5 ">
+                <!-- User Name -->
+                <div class="lc-block mb-4 text-success">
+					<h1 class="fw-bold"><%= user[0].name %></h1>
+				</div>
+                <div class="lc-block mb-4 text-light">
+					<p class="fs-4 text-center"> <span class="fst-italic">"Today a reader, tomorrow a leader."</span> – <span class="fw-bold">Margaret Fuller</span> </p>
+				</div>
+                <!-- Sort -->
+                <form method="get" autocomplete="off">
+                    <div class="dropdown-center col-sm position-absolute bottom-0 end-0 mb-1">
+                        <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                          Sort By
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><button class="dropdown-item" type="submit" formaction="/newest">Newest</button></li>
+                            <li><button class="dropdown-item" type="submit" formaction="/title">Title</button></li>
+                            <li><button class="dropdown-item" type="submit" formaction="/recommendation">Recommendation</button></li>
+                        </ul>
+                      </div>
+                </form>
+                <div class="border-top my-2"></div>        
+            </div>
+        </div>
+    </section>
+    <% } %>
+
+    <% if(locals.book) { %>
+    <!-- Book Section -->
+    <section class="bg-black pt-4 font">
+	<div class="container overflow-hidden py-7 ">
+        <% book.forEach(element => { %>            
+        <!-- The one to repeate -->
+		<div class="row align-items-center justify-content-center my-5"> 
+			<div class="col-8 col-lg-3 order-lg-2 offset-lg-1 mb-4 mb-lg-0 ">
+				<div class="lc-block">
+					<img style="transform:scale(1.2)" class="img-fluid py-4 wp-image-1949" src="<%= element.src_image %>" srcset="" sizes="" width="" height="562" alt="">
+				</div><!-- /lc-block -->
+			</div><!-- /col -->
+			<div class="col-12 col-lg-5 order-lg-3 offset-lg-1 text-center text-lg-start">
+                <!-- Book Title -->
+				<div class="lc-block mb-4 text-primary">
+					<div editable="rich">
+						<h2> <%= element.title %> - By <%= element.author %> </h2>
+					</div>
+				</div>
+                <!-- Book reco and date -->
+                <div class="lc-block mb-4 text-warning">
+					<div editable="rich">
+						<p> Date read: <%= new Date(element.read_date).toDateString() %> . Recommendation: <%= element.rating %>/10 <p>
+					</div>
+				</div>
+                <!-- Book Subhead -->
+				<div class="lc-block">
+					<div editable="rich">
+						<p class="text-light lead"> <%= element.head %><a class="btn btn-link" href="/view/<%= element.id %>" role="button">See my notes</a>
+                        </p>
+					</div>
+				</div><!-- /lc-block -->
+			</div><!-- /col -->
+		</div>
+        <div class="border-top my-2"></div>                
+        <% }); %>
+	</div>
+    </section>
+    <% } %>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+</body>
+</html>
