@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   </head>
 <body>
     <% if(locals.user) {%>
@@ -18,7 +19,7 @@
         <nav class="navbar navbar-expand-md bsb-navbar-3 bsb-tpl-navbar-sticky" data-bsb-sticky-target="#header">
           <div class="container">
             <!-- Logo -->
-            <a class="navbar-brand">
+            <a class="navbar-brand" href="/homepage">
               <img src="/styles/images/logo.png" width="45" height="45" class="bsb-tpl-logo" alt="BootstrapBrain Logo">
             </a>
             <!-- Button toggler -->
@@ -28,6 +29,57 @@
             <!-- User -->
             <div class="collapse navbar-collapse" id="bsbNavbar" data-bs-theme="dark">
               <ul class="navbar-nav bsb-dropdown-menu-responsive ms-auto align-items-center">
+                <!-- Notification -->
+                <li class="nav-item dropdown text-light">
+                  <a class="nav-link dropdown-toggle bsb-dropdown-toggle-caret-disable" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="position-relative pt-1 ">
+                      <i class="bi bi-bell-fill"></i>                      
+                      <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+                        <%= notification.length %>
+                      <span class="visually-hidden">New Chats</span>
+                      </span>
+                    </span>
+                  </a>
+                  <% if (locals.notification.length > 0) {%>
+                    <% notification.forEach(element => { %>
+                      <div class="dropdown-menu dropdown-menu-md-end bsb-dropdown-animation bsb-fadeIn" data-bs-popper="static">
+                        <div>
+                          <h6 class="dropdown-header text-light fs-7 text-center"><%= notification.length %> New Notifications</h6>
+                        </div>
+                        <div>
+                          <hr class="dropdown-divider mb-0">
+                        </div>
+                        <div class="list-group list-group-flush">
+                          <a class="list-group-item list-group-item-action" aria-current="true">
+                            <div class="row g-0 align-items-center">
+                              <div class="col-10">
+                                <div class="ps-3 text-center">
+                                  <div class="mt-1 fs-7"><i class="bi bi-person-add"></i> Friend request has been sent from <%= element.name %> (<%= element.username %>)</div>
+                                  <div class="mt-1 fs-7">
+                                    <form method="post">
+                                      <button class="btn btn-success" name="add" value= <%= element.id %> type="submit" formaction="/acceptrequest"><i class="bi bi-check2"></i></button>
+                                      <button class="btn btn-danger" name="remove" value= <%= element.id %> type="submit" formaction="/removerequest"><i class="bi bi-x"></i></button>
+                                    </form>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </a>
+                        </div>
+                        <div>
+                          <hr class="dropdown-divider mt-0">
+                        </div>
+                      </div>
+                    <% }); %>
+                  <% } else {%>
+                    <div class="dropdown-menu dropdown-menu-md-end bsb-dropdown-animation bsb-fadeIn" data-bs-popper="static">
+                      <div>
+                        <h6 class="dropdown-header text-light fs-7 text-center">No New Notification</h6>
+                      </div>
+                    </div>
+                    <% } %>
+                </li>
+                <!-- user -->
                 <li class="nav-item dropdown">
                   <a class="nav-link dropdown-toggle bsb-dropdown-toggle-caret-disable" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <img src="/styles/images/user.jpg" width="35" height="35" class="img-fluid rounded-circle" alt="user pic">
@@ -42,23 +94,34 @@
                     <li>
                       <a class="dropdown-item" href="/homepage">
                         <span>
-                          <i class="bi bi-person-fill me-2"></i>
                           <span class="fs-7">Home Page</span>
+                        </span>
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="/timeline">
+                        <span>
+                          <span class="fs-7">Timeline</span>
                         </span>
                       </a>
                     </li>
                     <li>
                       <a class="dropdown-item" href="/bookdash">
                         <span>
-                          <i class="bi bi-person-fill me-2"></i>
                           <span class="fs-7">Book Dashboard</span>
+                        </span>
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="/profile">
+                        <span>
+                          <span class="fs-7">Profile</span>
                         </span>
                       </a>
                     </li>
                     <li>
                       <a class="dropdown-item" href="/logout">
                         <span>
-                          <i class="bi bi-person-fill me-2"></i>
                           <span class="fs-7">Log out</span>
                         </span>
                       </a>

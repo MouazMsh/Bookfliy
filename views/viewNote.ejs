@@ -21,16 +21,17 @@
         </div>
         <div class="col-sm-12 mt-5 text-bold" data-aos="fade-up" data-aos-duration="400" data-aos-offset="170">
           <h3 class="text-success mb-4 fw-bold">My Notes:</h3>
-          <p class="fs-5 text-light"> <%= book[0].note %> </p>
+          <% let sentences = book[0].note.split('.'); %>
+          <% sentences.forEach(sentence => { %>
+            <p class="fs-5 text-light"> <%= sentence.trim() %>.</p>
+          <% }) %>
         </div>
     </div>
 </div>
 <% } %>
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <script>
       // initialization of aos
       AOS.init();
   </script>
-</body>
-</html>
+<%- include('partials/footer.ejs') %>

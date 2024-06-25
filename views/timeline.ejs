@@ -1,0 +1,80 @@
+<%- include('partials/header.ejs') %>
+    <!-- Header Section -->
+    <section class="bg-black font ">
+        <div class="container overflow-hidden py-7 position-relative">
+            <div class="row align-items-center justify-content-center my-5 ">
+                <!-- User Name -->
+                <div class="lc-block mb-4 text-success">
+					<h6 class="fw-bold"><i class="bi bi-layout-text-window"></i> Timeline</h6>
+				</div>
+                <div class="lc-block mb-4 text-light">
+					<p class="fs-4 text-center"> <span class="fst-italic">"Today a reader, tomorrow a leader."</span> – <span class="fw-bold">Margaret Fuller</span> </p>
+				</div>
+                <div class="border-top my-2"></div>        
+            </div>
+        </div>
+    </section>
+
+    <% if (locals.friendsNumber.length > 0) {%>
+        <% if(locals.book.length > 0) { %>
+            <!-- Book Section -->
+            <section class="bg-black pt-4 font">
+            <div class="container overflow-hidden py-7 ">
+                <% book.forEach(element => { %>            
+                <!-- The one to repeate -->
+                <div class="row align-items-center justify-content-center my-5"> 
+                    <div class="col-8 col-lg-3 order-lg-2 offset-lg-1 mb-4 mb-lg-0 ">
+                        <div class="lc-block">
+                            <img style="transform:scale(1.2)" class="img-fluid py-4 wp-image-1949" src="<%= element.src_image %>" srcset="" sizes="" width="" height="562" alt="">
+                        </div><!-- /lc-block -->
+                    </div><!-- /col -->
+                    <div class="col-12 col-lg-5 order-lg-3 offset-lg-1 text-center text-lg-start">
+                        <!-- Book Title -->
+                        <div class="lc-block mb-4 text-primary">
+                            <div editable="rich">
+                                <h2> <%= element.title %> - By <%= element.author %> </h2>
+                            </div>
+                        </div>
+                        <!-- Book reco and date -->
+                        <div class="lc-block mb-4 text-warning">
+                            <div editable="rich">
+                                <p> Date read: <%= new Date(element.read_date).toDateString() %> . Recommendation: <%= element.rating %>/10 <p>
+                            </div>
+                        </div>
+                        <!-- Book Subhead -->
+                        <div class="lc-block">
+                            <div editable="rich">
+                                <p class="text-light lead"> <%= element.head %></p>
+                                <p class="text-success">Shared By: <%= element.name %></p>
+                            </div>
+                        </div><!-- /lc-block -->
+                    </div><!-- /col -->
+                </div>
+                <div class="border-top my-2"></div>                
+                <% }); %>
+            </div>
+            </section>
+            <% } else {%>
+                <section class="bg-black pt-4 font">
+                    <div class="container overflow-hidden py-7 ">
+                        <div class="row align-items-center justify-content-center my-5"> 
+                            <div class="col-12 col-lg-5 order-lg-3 offset-lg-1 text-center text-lg-start">
+                                <p class="fs-4 text-primary">Your friends has not added any book yet.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            <% } %>
+    <% } else { %>
+        <section class="bg-black pt-4 font">
+        <div class="container overflow-hidden py-7 ">
+            <div class="row align-items-center justify-content-center my-5"> 
+                <div class="col-12 col-lg-5 order-lg-3 offset-lg-1 text-center text-lg-start">
+                    <p class="fs-4 text-primary">Add friends to update the Timeline</p>
+                </div>
+            </div>
+        </div>
+        </section>
+    <% } %>
+
+<%- include('partials/footer.ejs') %>
