@@ -663,6 +663,11 @@ app.post("/editnotes", async (req, res, next) => {
 
 // Sort by Newness
 app.get("/newest", async (req, res, next) => {
+  const formSubmitted = req.session.formSubmitted;
+  const message = req.session.message;
+  // Clear the session flags
+  req.session.formSubmitted = null;
+  req.session.message = null;
   try {
     const result = await db.query(
       "SELECT * FROM books WHERE books.user_id = $1 ORDER BY read_date DESC",
@@ -672,6 +677,8 @@ app.get("/newest", async (req, res, next) => {
       user: currentUser,
       book: result.rows,
       notification: userNotification,
+      formSubmitted: formSubmitted,
+      message: message,
     });
   } catch (err) {
     next(err);
@@ -680,6 +687,11 @@ app.get("/newest", async (req, res, next) => {
 
 // Sort by Title
 app.get("/title", async (req, res, next) => {
+  const formSubmitted = req.session.formSubmitted;
+  const message = req.session.message;
+  // Clear the session flags
+  req.session.formSubmitted = null;
+  req.session.message = null;
   try {
     const result = await db.query(
       "SELECT * FROM books WHERE books.user_id = $1 ORDER BY title",
@@ -689,6 +701,8 @@ app.get("/title", async (req, res, next) => {
       user: currentUser,
       book: result.rows,
       notification: userNotification,
+      formSubmitted: formSubmitted,
+      message: message,
     });
   } catch (err) {
     next(err); // Pass the error to the error handler
@@ -697,6 +711,11 @@ app.get("/title", async (req, res, next) => {
 
 // Sort by Recommendation
 app.get("/recommendation", async (req, res, next) => {
+  const formSubmitted = req.session.formSubmitted;
+  const message = req.session.message;
+  // Clear the session flags
+  req.session.formSubmitted = null;
+  req.session.message = null;
   try {
     const result = await db.query(
       "SELECT * FROM books WHERE books.user_id = $1 ORDER BY rating DESC",
@@ -706,6 +725,8 @@ app.get("/recommendation", async (req, res, next) => {
       user: currentUser,
       book: result.rows,
       notification: userNotification,
+      formSubmitted: formSubmitted,
+      message: message,
     });
   } catch (err) {
     next(err); // Pass the error to the error handler
