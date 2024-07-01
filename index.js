@@ -257,45 +257,71 @@ app.post("/addfriends", async (req, res, next) => {
     // username exists
     if (result.rows.length > 0) {
       const userIdSent = parseInt(result.rows[0].id); // Get the user id that received the request
-      const checkIfRequestSent = await db.query(
-        "SELECT to_user FROM notification WHERE from_user = $1",
-        [currentUserId]
-      );
-      // Check if the arr is empty and send a request
-      if (checkIfRequestSent.rows.length === 0) {
-        await db.query(
-          "INSERT INTO notification (from_user, to_user) VALUES ($1, $2)",
-          [currentUserId, userIdSent]
-        );
+      // Check if the added user is the same current user
+      if (userIdSent === currentUserId) {
         // Set a session flag and message
         req.session.formSubmitted = "add Friends";
-        req.session.message = "Friend Request has been sent.";
+        req.session.message = "You can not add yourself :(";
         res.redirect("/profile");
+        // added user is not the same current user
       } else {
-        const isSent = checkIfRequestSent.rows.filter(
-          (item) => item.to_user === userIdSent
+        // Check if the added user is already a friend
+        const checkIfUserIsFriend = await db.query(
+          "SELECT * FROM friends WHERE user_id = $1 AND friend_with = $2",
+          [currentUserId, userIdSent]
         );
-        // Check if the request has been sent before
-        if (isSent.length > 0) {
-          // Set a session flag and message
-          req.session.formSubmitted = "Resuest sent before";
-          req.session.message = "Friend Request has been sent before.";
-          res.redirect("/profile");
-          // request has not been sent
-        } else {
-          await db.query(
-            "INSERT INTO notification (from_user, to_user) VALUES ($1, $2)",
-            [currentUserId, userIdSent]
-          );
+        // User is in friend list
+        if (checkIfUserIsFriend.rows.length > 0) {
           // Set a session flag and message
           req.session.formSubmitted = "add Friends";
-          req.session.message = "Friend Request has been sent.";
+          req.session.message = "User is already your friend";
           res.redirect("/profile");
+        } else {
+          const checkIfRequestSent = await db.query(
+            "SELECT to_user FROM notification WHERE from_user = $1",
+            [currentUserId]
+          );
+          // Check if the arr is empty and send a request
+          if (checkIfRequestSent.rows.length === 0) {
+            await db.query(
+              "INSERT INTO notification (from_user, to_user) VALUES ($1, $2)",
+              [currentUserId, userIdSent]
+            );
+            // Set a session flag and message
+            req.session.formSubmitted = "add Friends";
+            req.session.message = "Friend Request has been sent.";
+            res.redirect("/profile");
+          } else {
+            const isSent = checkIfRequestSent.rows.filter(
+              (item) => item.to_user === userIdSent
+            );
+            // Check if the request has been sent before
+            if (isSent.length > 0) {
+              // Set a session flag and message
+              req.session.formSubmitted = "Resuest sent before";
+              req.session.message = "Friend Request has been sent before.";
+              res.redirect("/profile");
+              // request has not been sent
+            } else {
+              await db.query(
+                "INSERT INTO notification (from_user, to_user) VALUES ($1, $2)",
+                [currentUserId, userIdSent]
+              );
+              // Set a session flag and message
+              req.session.formSubmitted = "add Friends";
+              req.session.message = "Friend Request has been sent.";
+              res.redirect("/profile");
+            }
+          }
         }
       }
       // username does not exist
     } else {
-      res.send("Username is not found, be careful with capital letter.");
+      // Set a session flag and message
+      req.session.formSubmitted = "add Friends";
+      req.session.message =
+        "Username is not found, be careful with capital letter.";
+      res.redirect("/profile");
     }
   } catch (err) {
     next(err); // Pass the error to the error handler
@@ -306,7 +332,7 @@ app.post("/addfriends", async (req, res, next) => {
 app.post("/removerequest", async (req, res, next) => {
   const passedId = parseInt(req.body.remove);
   try {
-    const result = await db.query(
+    await db.query(
       "DELETE FROM notification WHERE to_user = $1 AND from_user = $2",
       [currentUserId, passedId]
     );
@@ -466,9 +492,9 @@ app.post("/login", async (req, res, next) => {
 // post register
 app.post("/register", async (req, res, next) => {
   const name = req.body.name;
-  const email = req.body.email;
+  const email = req.body.email.trim();
   const password = req.body.password;
-  const username = req.body.username;
+  const username = req.body.username.trim();
   const role = "User";
 
   try {
