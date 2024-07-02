@@ -20,7 +20,7 @@ const db = new pg.Client({
 db.connect();
 
 const apiLink = "https://covers.openlibrary.org/b/isbn/";
-let currentUserId;
+//let currentUserId;
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
@@ -48,7 +48,7 @@ async function checkBook(req) {
   try {
     const result = await db.query(
       "SELECT * FROM books WHERE books.user_id = $1 ORDER BY read_date",
-      [currentUserId]
+      [req.session.currentUserId]
     );
     req.session.books = result.rows;
     return req.session.books;
@@ -60,11 +60,11 @@ async function checkBook(req) {
 }
 
 // Get users's friends id
-async function checkFriend() {
+async function checkFriend(req) {
   try {
     const result = await db.query(
       "SELECT friend_with FROM friends WHERE user_id = $1",
-      [currentUserId]
+      [req.session.currentUserId]
     );
     return result.rows;
   } catch (err) {
@@ -92,7 +92,7 @@ async function getAllBooks(req) {
 // Get books that belongs to the friends of user
 async function checkFriendsBook(req) {
   try {
-    const friends = await checkFriend();
+    const friends = await checkFriend(req);
     const dbBooks = await getAllBooks(req);
     const filterd = dbBooks.filter((book) =>
       friends.find((x) => x.friend_with === book.user_id)
@@ -109,7 +109,7 @@ async function checkFriendsBook(req) {
 async function checkUser(req) {
   try {
     const result = await db.query("SELECT * FROM users WHERE id = $1", [
-      currentUserId,
+      req.session.currentUserId,
     ]);
     req.session.currentUser = result.rows;
     return req.session.currentUser;
@@ -155,7 +155,7 @@ async function checkNotification(req) {
   try {
     const result = await db.query(
       "SELECT from_user FROM notification WHERE to_user = $1",
-      [currentUserId]
+      [req.session.currentUserId]
     );
     const allUsers = await checkAllUsers(req);
     const filterd = allUsers.filter((user) =>
@@ -193,7 +193,7 @@ app.get("/profile", async (req, res, next) => {
   req.session.message = null;
   try {
     const resultUser = await checkUser(req); // Getting the current user info [{},{}]
-    const friends = await checkFriend();
+    const friends = await checkFriend(req);
     // Add name value to every item in filtered
     const addedNameFiltered = friends.map((friend) => {
       // Find the user whose id matches the user_id in the book
@@ -223,16 +223,16 @@ app.post("/removefriends", async (req, res, next) => {
     // Delete values from the friends table
     await db.query(
       "DELETE FROM friends WHERE user_id = $1 AND friend_with = $2",
-      [currentUserId, friendId]
+      [req.session.currentUserId, friendId]
     );
     await db.query(
       "DELETE FROM friends WHERE user_id = $1 AND friend_with = $2",
-      [friendId, currentUserId]
+      [friendId, req.session.currentUserId]
     );
     // update the friend number in users table
     await db.query(
       "UPDATE users SET friend_num = friend_num - 1 WHERE id = $1",
-      [currentUserId]
+      [req.session.currentUserId]
     );
     await db.query(
       "UPDATE users SET friend_num = friend_num - 1 WHERE id = $1",
@@ -260,7 +260,7 @@ app.post("/addfriends", async (req, res, next) => {
     if (result.rows.length > 0) {
       const userIdSent = parseInt(result.rows[0].id); // Get the user id that received the request
       // Check if the added user is the same current user
-      if (userIdSent === currentUserId) {
+      if (userIdSent === req.session.currentUserId) {
         // Set a session flag and message
         req.session.formSubmitted = "add Friends";
         req.session.message = "You can not add yourself :(";
@@ -270,7 +270,7 @@ app.post("/addfriends", async (req, res, next) => {
         // Check if the added user is already a friend
         const checkIfUserIsFriend = await db.query(
           "SELECT * FROM friends WHERE user_id = $1 AND friend_with = $2",
-          [currentUserId, userIdSent]
+          [req.session.currentUserId, userIdSent]
         );
         // User is in friend list
         if (checkIfUserIsFriend.rows.length > 0) {
@@ -281,13 +281,13 @@ app.post("/addfriends", async (req, res, next) => {
         } else {
           const checkIfRequestSent = await db.query(
             "SELECT to_user FROM notification WHERE from_user = $1",
-            [currentUserId]
+            [req.session.currentUserId]
           );
           // Check if the arr is empty and send a request
           if (checkIfRequestSent.rows.length === 0) {
             await db.query(
               "INSERT INTO notification (from_user, to_user) VALUES ($1, $2)",
-              [currentUserId, userIdSent]
+              [req.session.currentUserId, userIdSent]
             );
             // Set a session flag and message
             req.session.formSubmitted = "add Friends";
@@ -307,7 +307,7 @@ app.post("/addfriends", async (req, res, next) => {
             } else {
               await db.query(
                 "INSERT INTO notification (from_user, to_user) VALUES ($1, $2)",
-                [currentUserId, userIdSent]
+                [req.session.currentUserId, userIdSent]
               );
               // Set a session flag and message
               req.session.formSubmitted = "add Friends";
@@ -336,7 +336,7 @@ app.post("/removerequest", async (req, res, next) => {
   try {
     await db.query(
       "DELETE FROM notification WHERE to_user = $1 AND from_user = $2",
-      [currentUserId, passedId]
+      [req.session.currentUserId, passedId]
     );
     res.redirect("/homepage");
   } catch (err) {
@@ -351,16 +351,16 @@ app.post("/acceptrequest", async (req, res, next) => {
     // insert values into the friends table
     await db.query(
       "INSERT INTO friends (user_id, friend_with) VALUES ($1, $2)",
-      [currentUserId, passedId]
+      [req.session.currentUserId, passedId]
     );
     await db.query(
       "INSERT INTO friends (user_id, friend_with) VALUES ($1, $2)",
-      [passedId, currentUserId]
+      [passedId, req.session.currentUserId]
     );
     // update the friend number in users table
     await db.query(
       "UPDATE users SET friend_num = friend_num + 1 WHERE id = $1",
-      [currentUserId]
+      [req.session.currentUserId]
     );
     await db.query(
       "UPDATE users SET friend_num = friend_num + 1 WHERE id = $1",
@@ -369,7 +369,7 @@ app.post("/acceptrequest", async (req, res, next) => {
     // delete the notification from the table
     await db.query(
       "DELETE FROM notification WHERE to_user = $1 AND from_user = $2",
-      [currentUserId, passedId]
+      [req.session.currentUserId, passedId]
     );
     res.redirect("/homepage");
   } catch (err) {
@@ -380,7 +380,7 @@ app.post("/acceptrequest", async (req, res, next) => {
 // Get timeline page
 app.get("/timeline", async (req, res, next) => {
   try {
-    const friendNum = await checkFriend();
+    const friendNum = await checkFriend(req);
     const filterd = await checkFriendsBook(req);
     // Add name value to every item in filtered
     const addedNameFiltered = filterd.map((book) => {
@@ -469,7 +469,7 @@ app.post("/login", async (req, res, next) => {
           console.log("Error comparing password", err);
         } else {
           if (result) {
-            currentUserId = user.id;
+            req.session.currentUserId = user.id;
             res.redirect("/homepage");
           } else {
             // Set a session flag and message
@@ -606,7 +606,7 @@ app.post("/new", async (req, res, next) => {
   try {
     await db.query(
       "INSERT INTO books (title, author, read_date, rating, head, note, src_image, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-      [title, author, date, rating, summrize, notes, isbn, currentUserId]
+      [title, author, date, rating, summrize, notes, isbn, req.session.currentUserId]
     );
     // Set a session flag and message
     req.session.formSubmitted = "add new book";
@@ -699,7 +699,7 @@ app.get("/newest", async (req, res, next) => {
   try {
     const result = await db.query(
       "SELECT * FROM books WHERE books.user_id = $1 ORDER BY read_date DESC",
-      [currentUserId]
+      [req.session.currentUserId]
     );
     res.render("index.ejs", {
       user: req.session.currentUser,
@@ -723,7 +723,7 @@ app.get("/title", async (req, res, next) => {
   try {
     const result = await db.query(
       "SELECT * FROM books WHERE books.user_id = $1 ORDER BY title",
-      [currentUserId]
+      [req.session.currentUserId]
     );
     res.render("index.ejs", {
       user: req.session.currentUser,
@@ -747,7 +747,7 @@ app.get("/recommendation", async (req, res, next) => {
   try {
     const result = await db.query(
       "SELECT * FROM books WHERE books.user_id = $1 ORDER BY rating DESC",
-      [currentUserId]
+      [req.session.currentUserId]
     );
     res.render("index.ejs", {
       user: req.session.currentUser,
