@@ -20,21 +20,18 @@ const db = new pg.Client({
 db.connect();
 
 const apiLink = "https://covers.openlibrary.org/b/isbn/";
-let users = []; // All users
-let currentUser = []; // Current user info
-let books = []; // Books belong to current user
-let userNotification = []; // Notification of the user
-let allBooks = []; // All books in the db
 let currentUserId;
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
+app.use(express.json());
 app.use(errorHandler);
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
+    cookie: { secure: true } // set this to false in development 
   })
 );
 
@@ -46,15 +43,15 @@ function errorHandler(err, req, res, next) {
   });
 }
 
-// Getting the book info from database
-async function checkBook() {
+// Getting the book info for current user from database
+async function checkBook(req) {
   try {
     const result = await db.query(
       "SELECT * FROM books WHERE books.user_id = $1 ORDER BY read_date",
       [currentUserId]
     );
-    books = result.rows;
-    return books;
+    req.session.books = result.rows;
+    return req.session.books;
   } catch (err) {
     console.error("Error in checkBook:", err);
     err.status = 500; // set a custom status code
@@ -78,13 +75,13 @@ async function checkFriend() {
 }
 
 // Get all books from the db
-async function getAllBooks() {
+async function getAllBooks(req) {
   try {
     const allBook = await db.query(
       "SELECT title, author, read_date, rating, head, src_image, user_id FROM books"
     );
-    allBooks = allBook.rows;
-    return allBooks;
+    req.session.allBooks = allBook.rows;
+    return req.session.allBooks;
   } catch (err) {
     console.error("Error in getAllBooks:", err);
     err.status = 500; // set a custom status code
@@ -93,10 +90,10 @@ async function getAllBooks() {
 }
 
 // Get books that belongs to the friends of user
-async function checkFriendsBook() {
+async function checkFriendsBook(req) {
   try {
     const friends = await checkFriend();
-    const dbBooks = await getAllBooks();
+    const dbBooks = await getAllBooks(req);
     const filterd = dbBooks.filter((book) =>
       friends.find((x) => x.friend_with === book.user_id)
     );
@@ -108,14 +105,14 @@ async function checkFriendsBook() {
   }
 }
 
-// Getting a specific user info from database
-async function checkUser() {
+// Getting a current user info from database
+async function checkUser(req) {
   try {
     const result = await db.query("SELECT * FROM users WHERE id = $1", [
       currentUserId,
     ]);
-    currentUser = result.rows;
-    return currentUser;
+    req.session.currentUser = result.rows;
+    return req.session.currentUser;
   } catch (err) {
     console.error("Error in checkUser:", err);
     err.status = 500; // set a custom status code
@@ -124,13 +121,13 @@ async function checkUser() {
 }
 
 // Getting all the users data
-async function checkAllUsers() {
+async function checkAllUsers(req) {
   try {
     const result = await db.query(
       "SELECT id, name, username, friend_num FROM users"
     );
-    users = result.rows;
-    return users;
+    req.session.users = result.rows;
+    return req.session.users;
   } catch (err) {
     console.error("Error in checkAllUsers:", err);
     err.status = 500; // set a custom status code
@@ -138,7 +135,7 @@ async function checkAllUsers() {
   }
 }
 
-// Getting specific book based on the id of the book
+// Getting specific book by the id of the book
 async function getSpecificBook(temp) {
   try {
     const result = await db.query(
@@ -154,18 +151,18 @@ async function getSpecificBook(temp) {
 }
 
 // Getting the Notification for the current user
-async function checkNotification() {
+async function checkNotification(req) {
   try {
     const result = await db.query(
       "SELECT from_user FROM notification WHERE to_user = $1",
       [currentUserId]
     );
-    const allUsers = await checkAllUsers();
+    const allUsers = await checkAllUsers(req);
     const filterd = allUsers.filter((user) =>
       result.rows.find((x) => x.from_user === user.id)
     );
-    userNotification = filterd;
-    return filterd;
+    req.session.notification = filterd;
+    return req.session.notification;
   } catch (err) {
     console.error("Error in checkNotification:", err);
     err.status = 500; // set a custom status code
@@ -178,8 +175,13 @@ app.get("/", (req, res) => {
 });
 
 // Get log out
-app.get("/logout", (req, res) => {
-  res.redirect("/");
+app.get("/logout", (req, res, next) => {
+  req.session.destroy((err) => {
+    if (err) {
+      next(err);
+    }
+    res.redirect("/");
+  });
 });
 
 // Get profile page
@@ -190,12 +192,12 @@ app.get("/profile", async (req, res, next) => {
   req.session.formSubmitted = null;
   req.session.message = null;
   try {
-    const resultUser = await checkUser(); // Getting the current user info [{},{}]
+    const resultUser = await checkUser(req); // Getting the current user info [{},{}]
     const friends = await checkFriend();
     // Add name value to every item in filtered
     const addedNameFiltered = friends.map((friend) => {
       // Find the user whose id matches the user_id in the book
-      const user = users.find((user) => user.id === friend.friend_with);
+      const user = req.session.users.find((user) => user.id === friend.friend_with);
       // Return a new object combining the book's properties with the user's name
       return {
         ...friend,
@@ -204,7 +206,7 @@ app.get("/profile", async (req, res, next) => {
     });
     res.render("profile.ejs", {
       user: resultUser,
-      notification: userNotification,
+      notification: req.session.notification,
       friends: addedNameFiltered,
       formSubmitted: formSubmitted,
       message: message,
@@ -379,11 +381,11 @@ app.post("/acceptrequest", async (req, res, next) => {
 app.get("/timeline", async (req, res, next) => {
   try {
     const friendNum = await checkFriend();
-    const filterd = await checkFriendsBook();
+    const filterd = await checkFriendsBook(req);
     // Add name value to every item in filtered
     const addedNameFiltered = filterd.map((book) => {
       // Find the user whose id matches the user_id in the book
-      const user = users.find((user) => user.id === book.user_id);
+      const user = req.session.users.find((user) => user.id === book.user_id);
       // Return a new object combining the book's properties with the user's name
       return {
         ...book,
@@ -391,9 +393,9 @@ app.get("/timeline", async (req, res, next) => {
       };
     });
     res.render("timeline.ejs", {
-      user: currentUser,
+      user: req.session.currentUser,
       book: addedNameFiltered,
-      notification: userNotification,
+      notification: req.session.notification,
       friendsNumber: friendNum,
     });
   } catch (err) {
@@ -409,9 +411,9 @@ app.get("/homepage", async (req, res, next) => {
   req.session.formSubmitted = null;
   req.session.message = null;
   try {
-    const resultUser = await checkUser(); // Getting the current user info [{},{}]
-    const resultBook = await checkBook(); // Getting the books [{},{}]
-    const resultNotification = await checkNotification(); // Getting the notification [{}, {}]
+    const resultUser = await checkUser(req); // Getting the current user info [{},{}]
+    const resultBook = await checkBook(req); // Getting the books [{},{}]
+    const resultNotification = await checkNotification(req); // Getting the notification [{}, {}]
     res.render("index.ejs", {
       user: resultUser,
       book: resultBook,
@@ -543,7 +545,7 @@ app.post("/register", async (req, res, next) => {
 
 // Get add Book page
 app.get("/newbook", async (req, res) => {
-  res.render("book.ejs", { user: currentUser, notification: userNotification });
+  res.render("book.ejs", { user: req.session.currentUser, notification: req.session.notification });
 });
 
 // Get forgot password page
@@ -562,9 +564,9 @@ app.get("/forgot", (req, res) => {
 // Get Book Dashboard page
 app.get("/bookdash", async (req, res) => {
   res.render("bookdashboard.ejs", {
-    user: currentUser,
-    book: books,
-    notification: userNotification,
+    user: req.session.currentUser,
+    book: req.session.books,
+    notification: req.session.notification,
   });
 });
 
@@ -574,9 +576,9 @@ app.get("/view/:id", async (req, res, next) => {
   try {
     const result = await getSpecificBook(ids);
     res.render("viewNote.ejs", {
-      user: currentUser,
+      user: req.session.currentUser,
       book: result,
-      notification: userNotification,
+      notification: req.session.notification,
     });
   } catch (err) {
     next(err);
@@ -586,9 +588,9 @@ app.get("/view/:id", async (req, res, next) => {
 // Get edit page notes
 app.get("/notes", async (req, res) => {
   res.render("editnote.ejs", {
-    user: currentUser,
-    book: books,
-    notification: userNotification,
+    user: req.session.currentUser,
+    book: req.session.books,
+    notification: req.session.notification,
   });
 });
 
@@ -700,9 +702,9 @@ app.get("/newest", async (req, res, next) => {
       [currentUserId]
     );
     res.render("index.ejs", {
-      user: currentUser,
+      user: req.session.currentUser,
       book: result.rows,
-      notification: userNotification,
+      notification: req.session.notification,
       formSubmitted: formSubmitted,
       message: message,
     });
@@ -724,9 +726,9 @@ app.get("/title", async (req, res, next) => {
       [currentUserId]
     );
     res.render("index.ejs", {
-      user: currentUser,
+      user: req.session.currentUser,
       book: result.rows,
-      notification: userNotification,
+      notification: req.session.notification,
       formSubmitted: formSubmitted,
       message: message,
     });
@@ -748,9 +750,9 @@ app.get("/recommendation", async (req, res, next) => {
       [currentUserId]
     );
     res.render("index.ejs", {
-      user: currentUser,
+      user: req.session.currentUser,
       book: result.rows,
-      notification: userNotification,
+      notification: req.session.notification,
       formSubmitted: formSubmitted,
       message: message,
     });
